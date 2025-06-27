@@ -49,12 +49,12 @@ pub fn configure(b: *Build, target: Build.ResolvedTarget, optimize: std.builtin.
         const patchDynasm = applyPatchToFile(b, b.graph.host, sourceDynasmFile, b.path("build/luajit.patch"), "dynasm-patched.lua");
 
         const copyPatchedDynasm = b.addSystemCommand(&[_][]const u8{
-            "xcopy",
+            "cmd",
         });
+        copyPatchedDynasm.addArgs(&.{ "/q", "/c", "copy" });
         copyPatchedDynasm.step.dependOn(&patchDynasm.run.step);
         copyPatchedDynasm.addFileArg(patchDynasm.output);
         copyPatchedDynasm.addFileArg(destDynasmFile);
-        copyPatchedDynasm.addArgs(&.{ "/S", "/Y" });
 
         dynasm_run.step.dependOn(&patchDynasm.run.step);
         dynasm_run.step.dependOn(&copyPatchedDynasm.step);

@@ -44,10 +44,5 @@ jobs:
       with:
         version: ${{ matrix.zig }}
 
-    - name: Check xcopy
-      if: runner.os == 'Windows'
-      run: where xcopy
-      shell: cmd
-
     - name: Run tests
       run: make test_cross
