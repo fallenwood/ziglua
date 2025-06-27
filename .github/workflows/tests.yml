@@ -44,5 +44,9 @@ jobs:
       with:
         version: ${{ matrix.zig }}
 
+    - name: Check xcopy
+      run: where xcopy
+      shell: cmd
+
     - name: Run tests
       run: make test_cross
