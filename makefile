@@ -12,8 +12,8 @@ test:
 	zig build -Dlang=luau install-example-luau-bytecode
 
 test_cross:
-	zig build -Dlang=lua -Dtarget=aarch64-linux
-	zig build -Dlang=lua -Dtarget=aarch64-linux-gnu
+	zig build -Dlang=lua51 -Dtarget=aarch64-linux
+	zig build -Dlang=lua51 -Dtarget=aarch64-linux-gnu
 	zig build -Dlang=luajit -Dtarget=aarch64-linux
 	zig build -Dlang=luajit -Dtarget=aarch64-linux-gnu
 
