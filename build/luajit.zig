@@ -3,6 +3,8 @@ const std = @import("std");
 const Build = std.Build;
 const Step = std.Build.Step;
 
+const applyPatchToFile = @import("utils.zig").applyPatchToFile;
+
 pub fn configure(b: *Build, target: Build.ResolvedTarget, optimize: std.builtin.OptimizeMode, upstream: *Build.Dependency, shared: bool) *Step.Compile {
     // TODO: extract this to the main build function because it is shared between all specialized build functions
 
@@ -40,10 +42,28 @@ pub fn configure(b: *Build, target: Build.ResolvedTarget, optimize: std.builtin.
     // Generate the buildvm_arch.h file using minilua
     const dynasm_run = b.addRunArtifact(minilua);
 
-    // Patch windows cross build for LuaJIT
-    const patched = patchFile(b, target, lib, upstream.path("dynasm/dynasm.lua"), b.path("build/luajit.patch"));
+    if (b.graph.host.result.os.tag == .windows) {
+        // Patch windows cross build for LuaJIT
+        const sourceDynasmFile = upstream.path("dynasm/dynasm.lua");
+        const destDynasmFile = upstream.path("dynasm/dynasm-patched.lua");
+        const patchDynasm = applyPatchToFile(b, b.graph.host, sourceDynasmFile, b.path("build/luajit.patch"), "dynasm-patched.lua");
 
-    dynasm_run.addFileArg(patched.path("dynasm/dynasm.lua"));
+        const copyPatchedDynasm = b.addSystemCommand(&[_][]const u8{
+            "xcopy",
+        });
+        copyPatchedDynasm.step.dependOn(&patchDynasm.run.step);
+        copyPatchedDynasm.addFileArg(patchDynasm.output);
+        copyPatchedDynasm.addFileArg(destDynasmFile);
+        copyPatchedDynasm.addArgs(&.{ "/S", "/Y" });
+
+        dynasm_run.step.dependOn(&patchDynasm.run.step);
+        dynasm_run.step.dependOn(&copyPatchedDynasm.step);
+
+        dynasm_run.addFileArg(destDynasmFile);
+        // dynasm_run.addFileArg(sourceDynasmFile);
+    } else {
+        dynasm_run.addFileArg(upstream.path("dynasm/dynasm.lua"));
+    }
 
     // TODO: Many more flags to figure out
     if (target.result.cpu.arch.endian() == .little) {
@@ -170,7 +190,7 @@ pub fn configure(b: *Build, target: Build.ResolvedTarget, optimize: std.builtin.
 
     buildvm_ljvm.addArg("-o");
     if (target.result.os.tag == .windows) {
-        const ljvm_ob = buildvm_ljvm.addOutputFileArg("lj_vm. o");
+        const ljvm_ob = buildvm_ljvm.addOutputFileArg("lj_vm.o");
         lib.addObjectFile(ljvm_ob);
     } else {
         const ljvm_asm = buildvm_ljvm.addOutputFileArg("lj_vm.S");
@@ -224,27 +244,9 @@ pub fn configure(b: *Build, target: Build.ResolvedTarget, optimize: std.builtin.
     return lib;
 }
 
-fn patchFile(
-    b: *Build,
-    target: Build.ResolvedTarget,
-    lib: *Step.Compile,
-    file: Build.LazyPath,
-    patch_file: Build.LazyPath,
-) Build.LazyPath {
-    const patch = b.addExecutable(.{
-        .name = "patch",
-        .root_source_file = b.path("build/patch.zig"),
-        .target = target,
-    });
-
-    const patch_run = b.addRunArtifact(patch);
-    patch_run.addFileArg(file);
-    patch_run.addFileArg(patch_file);
-    const out = patch_run.addOutputFileArg("ldo.c");
-
-    lib.step.dependOn(&patch_run.step);
-
-    return out;
+fn getPath(lazy_path: Build.LazyPath, src_builder: *Build, asking_step: ?*Step) []const u8 {
+    const p = lazy_path.getPath3(src_builder, asking_step);
+    return src_builder.pathResolve(&.{ p.root_dir.path orelse ".", p.sub_path });
 }
 
 const luajit_lib = [_][]const u8{

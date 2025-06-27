@@ -3,7 +3,7 @@ const std = @import("std");
 const Build = std.Build;
 const Step = std.Build.Step;
 
-const patchFile = @import("utils.zig").patchFile;
+const applyPatchToFile = @import("utils.zig").applyPatchToFile;
 
 pub const Language = enum {
     lua51,
@@ -78,8 +78,11 @@ pub fn configure(b: *Build, target: Build.ResolvedTarget, optimize: std.builtin.
 
     // Patch ldo.c for Lua 5.1
     if (lang == .lua51) {
-        const patched = patchFile(b, b.graph.host, lib, upstream.path("src/ldo.c"), b.path("build/lua-5.1.patch"), "ldo.c");
-        lib.addCSourceFile(.{ .file = patched, .flags = &flags });
+        const patched = applyPatchToFile(b, b.graph.host, upstream.path("src/ldo.c"), b.path("build/lua-5.1.patch"), "ldo.c");
+
+        lib.step.dependOn(&patched.run.step);
+
+        lib.addCSourceFile(.{ .file = patched.output, .flags = &flags });
     }
 
     lib.linkLibC();
