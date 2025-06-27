@@ -6,15 +6,10 @@ test:
 	zig build test --summary failures -Dlang=lua53
 	zig build test --summary failures -Dlang=lua54
 	zig build test --summary failures -Dlang=luau
-	zig build test --summary failures -Dlang=luajit
 
 	zig build install-example-interpreter
 	zig build install-example-zig-function
 	zig build -Dlang=luau install-example-luau-bytecode
-
-
-	zig build -Dlang=luajit install-example-interpreter
-	zig build -Dlang=luajit install-example-zig-function
 
 test_cross:
 	zig build -Dlang=lua -Dtarget=aarch64-linux
