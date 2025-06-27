@@ -39,11 +39,7 @@ pub fn configure(b: *Build, target: Build.ResolvedTarget, optimize: std.builtin.
 
     // Generate the buildvm_arch.h file using minilua
     const dynasm_run = b.addRunArtifact(minilua);
-
-    // Patch windows cross build for LuaJIT
-    const patched = patchFile(b, target, lib, upstream.path("dynasm/dynasm.lua"), b.path("build/luajit.patch"));
-
-    dynasm_run.addFileArg(patched.path("dynasm/dynasm.lua"));
+    dynasm_run.addFileArg(upstream.path("dynasm/dynasm.lua"));
 
     // TODO: Many more flags to figure out
     if (target.result.cpu.arch.endian() == .little) {
@@ -222,29 +218,6 @@ pub fn configure(b: *Build, target: Build.ResolvedTarget, optimize: std.builtin.
     lib.installHeader(luajit_h, "luajit.h");
 
     return lib;
-}
-
-fn patchFile(
-    b: *Build,
-    target: Build.ResolvedTarget,
-    lib: *Step.Compile,
-    file: Build.LazyPath,
-    patch_file: Build.LazyPath,
-) Build.LazyPath {
-    const patch = b.addExecutable(.{
-        .name = "patch",
-        .root_source_file = b.path("build/patch.zig"),
-        .target = target,
-    });
-
-    const patch_run = b.addRunArtifact(patch);
-    patch_run.addFileArg(file);
-    patch_run.addFileArg(patch_file);
-    const out = patch_run.addOutputFileArg("ldo.c");
-
-    lib.step.dependOn(&patch_run.step);
-
-    return out;
 }
 
 const luajit_lib = [_][]const u8{
