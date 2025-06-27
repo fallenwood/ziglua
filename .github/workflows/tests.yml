@@ -45,6 +45,7 @@ jobs:
         version: ${{ matrix.zig }}
 
     - name: Check xcopy
+      if: runner.os == 'Windows'
       run: where xcopy
       shell: cmd
 
