@@ -92,7 +92,7 @@ pub fn build(b: *Build) void {
         .target = target,
         .optimize = optimize,
     });
-    tests.root_module.addImport("zlua", lua_wrapper);
+    tests.root_module.addImport("lua_wrapper", lua_wrapper);
 
     const run_tests = b.addRunArtifact(tests);
     const test_step = b.step("test", "Run ziglua tests");
@@ -115,7 +115,7 @@ pub fn build(b: *Build) void {
             .target = target,
             .optimize = optimize,
         });
-        exe.root_module.addImport("zlua", lua_wrapper);
+        exe.root_module.addImport("lua_wrapper", lua_wrapper);
 
         const artifact = b.addInstallArtifact(exe, .{});
         const exe_step = b.step(b.fmt("install-example-{s}", .{example[0]}), b.fmt("Install {s} example", .{example[0]}));
@@ -151,7 +151,7 @@ pub fn build(b: *Build) void {
         .name = "define-zig-types",
         .target = target,
     });
-    def_exe.root_module.addImport("zlua", lua_wrapper);
+    def_exe.root_module.addImport("lua_wrapper", lua_wrapper);
     var run_def_exe = b.addRunArtifact(def_exe);
     run_def_exe.addFileArg(b.path("definitions.lua"));
 
