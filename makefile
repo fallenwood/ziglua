@@ -11,5 +11,8 @@ test:
 	zig build install-example-zig-function
 	zig build -Dlang=luau install-example-luau-bytecode
 
+test_cross:
+	zig build -Dlang=luajit -Dtarget=aarch64-linux
+
 docs:
 	zig build docs
