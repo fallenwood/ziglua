@@ -24,7 +24,7 @@ pub fn configure(b: *Build, target: Build.ResolvedTarget, optimize: std.builtin.
     // Compile minilua interpreter used at build time to generate files
     const minilua = b.addExecutable(.{
         .name = "minilua",
-        .target = target, // TODO ensure this is the host
+        .target = b.graph.host, // Use host target for cross build
         .optimize = .ReleaseSafe,
     });
     minilua.linkLibC();
@@ -55,6 +55,10 @@ pub fn configure(b: *Build, target: Build.ResolvedTarget, optimize: std.builtin.
         dynasm_run.addArgs(&.{ "-D", "FPU", "-D", "HFABI" });
     }
 
+    if (target.result.cpu.arch == .aarch64 or target.result.cpu.arch == .aarch64_be) {
+        dynasm_run.addArgs(&.{ "-D", "DUALNUM" });
+    }
+
     if (target.result.os.tag == .windows) dynasm_run.addArgs(&.{ "-D", "WIN" });
 
     dynasm_run.addArg("-o");
@@ -81,7 +85,7 @@ pub fn configure(b: *Build, target: Build.ResolvedTarget, optimize: std.builtin.
     // Compile the buildvm executable used to generate other files
     const buildvm = b.addExecutable(.{
         .name = "buildvm",
-        .target = target, // TODO ensure this is the host
+        .target = b.graph.host, // Use host target for cross build
         .optimize = .ReleaseSafe,
     });
     buildvm.linkLibC();
@@ -96,12 +100,18 @@ pub fn configure(b: *Build, target: Build.ResolvedTarget, optimize: std.builtin.
     buildvm.step.dependOn(&dynasm_run.step);
     buildvm.step.dependOn(&genversion_run.step);
 
+    const buildvm_c_flags = switch (target.result.cpu.arch) {
+        .aarch64, .aarch64_be => &[_][]const u8{ "-DLUAJIT_TARGET=LUAJIT_ARCH_arm64", "-DLJ_ARCH_HASFPU=1", "-DLJ_ABI_SOFTFP=0" },
+        else => &[_][]const u8{},
+    };
+
     buildvm.addCSourceFiles(.{
         .root = .{ .dependency = .{
             .dependency = upstream,
             .sub_path = "",
         } },
         .files = &.{ "src/host/buildvm_asm.c", "src/host/buildvm_fold.c", "src/host/buildvm_lib.c", "src/host/buildvm_peobj.c", "src/host/buildvm.c" },
+        .flags = buildvm_c_flags,
     });
 
     buildvm.addIncludePath(upstream.path("src"));
