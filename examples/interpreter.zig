@@ -4,7 +4,7 @@
 const std = @import("std");
 
 // The zlua module is made available in build.zig
-const zlua = @import("zlua");
+const lua_wrapper = @import("lua_wrapper");
 
 pub fn main() anyerror!void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
@@ -14,7 +14,7 @@ pub fn main() anyerror!void {
     // Initialize The Lua vm and get a reference to the main thread
     //
     // Passing a Zig allocator to the Lua state requires a stable pointer
-    var lua = try zlua.Lua.init(allocator);
+    var lua = try lua_wrapper.Lua.init(allocator);
     defer lua.deinit();
 
     // Open all Lua standard libraries
